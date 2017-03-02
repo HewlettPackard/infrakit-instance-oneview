@@ -1,0 +1,17 @@
+
+*.plist
+
+instance-infrakit-oneview/
+
+lib/
+
+instance-infrakit-oneview/instance-infrakit-oneview.xcodeproj/
+
+
+instance-infrakit-oneview/instance-infrakit-oneview.xcodeproj/project.pbxproj
+
+headers/jansson_config.h
+
+headers/jansson.h
+
+instance-infrakit-oneview/instance-infrakit-oneview.xcodeproj/project.pbxproj
