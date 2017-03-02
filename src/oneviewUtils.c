@@ -95,25 +95,25 @@ long long findVersionInJSON (char *httpBuffer)
     return 0;
 }
 
-char *findCookieInJSON (char *httpBuffer)
+const char *findCookieInJSON (char *httpBuffer)
 {
-    // This is a function for handling the tiny piece of JSON that is returned from http://<appliance>/login-sessions
-    // The json should always follow the same structure
-    // {"partnerData":"","sessionID":X}
-    // We're only after the sessionID
     
-    // Check one, ensure that the key is "sessionID"
-    size_t stringLength = strlen(httpBuffer); // ideally should be 41 characters
-    if (stringLength >= 41) {
-        char *versionKey = strstr(httpBuffer, "sessionID");
-        if (versionKey) {
-            versionKey = versionKey + 12; // Move Pointer to the end of the comma
-            versionKey[strlen(versionKey) -2] = '\0'; // remove the last two characters
-        
-            return strdup(strtok(versionKey, ",")); // remove characters from the right up to the comma
+    json_t *cookieJSON = NULL;
+    json_error_t error;
+    
+    // Parse the JSON
+    cookieJSON = json_loads(httpBuffer, 0, &error);
+    
+    if (cookieJSON) {
+        json_t *foundCookie = json_object_get(cookieJSON, "sessionID");
+        if (foundCookie) {
+            const char *cookie = strdup(json_string_value(foundCookie));
+            json_decref(cookieJSON);
+            return cookie;
         }
+        json_decref(cookieJSON);
     }
-    return NULL;
+    return 0;
 }
 
 char *createJSONLoginText(oneviewSession *session)
@@ -123,11 +123,13 @@ char *createJSONLoginText(oneviewSession *session)
         if (session->debug->buffer) { // if the buffer is being used, free that memory before re-allocating
             free (session->debug->buffer);
         }
-        char buffer[1024]; // 1K buffer for creating the json string
-        sprintf(buffer, "{\"userName\":\"%s\",\"password\":\"%s\"}", session->username, session->password);
-        session->debug->buffer = malloc(strlen(buffer));
-        memcpy(session->debug->buffer, buffer, strlen(buffer));
-        return session->debug->buffer;
+        
+        json_t *reponseJSON = json_pack("{s:s,s:s}", "userName", session->username, "password", session->password);
+        if (reponseJSON) {
+            char *login_text = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
+            session->debug->buffer= login_text;
+            return session->debug->buffer;
+        }
     }
     return NULL;
 }

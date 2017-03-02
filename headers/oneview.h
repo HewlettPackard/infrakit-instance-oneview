@@ -45,7 +45,7 @@ struct ovSession
 {
     long long version;
     char *address;
-    char *cookie;
+    const char *cookie;
     char *username;
     char *password;
     oneviewDebug *debug;

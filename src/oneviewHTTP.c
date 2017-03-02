@@ -65,7 +65,7 @@ void appendHttpHeader(char *header)
     headers = curl_slist_append(headers, (const char*) header);
 }
 
-void createHeader(char *key, char *data)
+void createHeader(char *key, const char *data)
 {
     char headerData[strlen(key)+strlen(data)];
     //char headerData[56]; //6 for auth: and 48 (33 < 1.20 version) for sessionID

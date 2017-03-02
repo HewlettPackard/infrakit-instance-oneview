@@ -25,7 +25,7 @@ void setHttpPort (long httpPort);
 void SetHttpMethod(int method);
 char *httpFunction(char *url);
 void PrintHttpAuth();
-void createHeader(char *key, char *data);
+void createHeader(char *key, const char *data);
 
 #define DCHTTPPOST     0 // POST Operation
 #define DCHTTPPUT      1 // PUT Operation
