@@ -43,7 +43,7 @@ struct ovDebug
 
 struct ovSession
 {
-    char *version;
+    long long version;
     char *address;
     char *cookie;
     char *username;
@@ -145,7 +145,7 @@ int stringMatch(const char *string1, const char *string2);
 void setOVHeaders(oneviewSession *session);
 
 //Determine version of HPE OneView
-char *identifyOneview(oneviewSession *session);
+long long identifyOneview(oneviewSession *session);
 
 char *serverProfileFromHardwareURI(oneviewSession *session, const char *hardwareURI);
 char *stateFromHardwareURI(oneviewSession *session, const char *hardwareURI);

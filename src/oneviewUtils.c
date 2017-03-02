@@ -15,6 +15,7 @@
 #include "oneview.h"
 #include "oneviewHttp.h"
 
+#include <jansson.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +33,7 @@ oneviewSession *initSession()
     oneviewSession *session = malloc(sizeof(oneviewSession));
     session->cookie = NULL;
     session->address = NULL;
-    session->version = "0"; // default to a zero header
+    session->version = 0; // default to a zero header
     
     session->debug = malloc(sizeof(oneviewDebug));
     session->debug->usedAddress = malloc(1024);
@@ -73,26 +74,25 @@ int stringMatch(const char *string1, const char *string2)
 
 
 
-char *findVersionInJSON (char *httpBuffer)
+long long findVersionInJSON (char *httpBuffer)
 {
     // This is a function for handling the tiny piece of JSON that is returned from http://<appliance>/version
-    // The json should always follow the same structure
-    // {"currentVersion":XXX,"minimumVersion":X}
-    // We're only after the currentVersion
+    json_t *versionJSON = NULL;
+    json_error_t error;
+
+    // Parse the JSON
+    versionJSON = json_loads(httpBuffer, 0, &error);
     
-    // Ensure that there was content returned
-    if (httpBuffer) {
-        // Check the length of the raw text that was returned
-        size_t stringLength = strlen(httpBuffer);
-        if (stringLength >= 41) {
-            char *versionKey = strstr(httpBuffer, "currentVersion");
-            if (versionKey) {
-                versionKey = versionKey + 16; // Move Pointer to the end of the comma
-                return strdup(strtok(versionKey, ",")); // remove characters from the right up to the comma
-            }
+    if (versionJSON) {
+        json_t *foundVersion = json_object_get(versionJSON, "currentVersion");
+        if (foundVersion) {
+            json_int_t version = json_integer_value(foundVersion);
+            json_decref(versionJSON);
+            return version;
         }
+        json_decref(versionJSON);
     }
-    return NULL;
+    return 0;
 }
 
 char *findCookieInJSON (char *httpBuffer)
@@ -146,7 +146,7 @@ void setOVHeaders(oneviewSession *session)
         if (session->version > 0)
         {
             char versionHeader[1024]; // 1k buffer for version header
-            sprintf(versionHeader, "X-API-version: %s", session->version); // Append the version to the header
+            sprintf(versionHeader, "X-API-version: %lld", session->version); // Append the version to the header
             appendHttpHeader(versionHeader);
         }
         if (session->cookie)
@@ -157,7 +157,7 @@ void setOVHeaders(oneviewSession *session)
 }
 
 
-char * identifyOneview(oneviewSession *session)
+long long identifyOneview(oneviewSession *session)
 {
     // This function will iterate through the available systems and attempt to identify the system and it's version
     if (!session->address) {
@@ -167,7 +167,7 @@ char * identifyOneview(oneviewSession *session)
     //Begin Checks check
     
     char *httpData;
-
+    long long version = 0;
     // Wipe the contents of the allocated memory
     memset(session->debug->usedAddress, 0, sizeof(1024));
     // Create the url and store it in the debug structure
@@ -176,20 +176,20 @@ char * identifyOneview(oneviewSession *session)
     SetHttpMethod(DCHTTPGET);
     httpData = httpFunction(session->debug->usedAddress);
     if (httpData) {
-        char *version = strdup(findVersionInJSON(httpData));
+        version = findVersionInJSON(httpData);
     
         // Tidy allocated memory
 
         free(httpData);
-        return version;
 
     }
-    return NULL;
+    return version;
+NULL;
 }
 
 int ovLogin(oneviewSession *session)
 {
-    if (session->version == NULL) {
+    if (session->version == 0) {
         printf("[WARNING], ensure that version has been discovered before attempting to use API for logging in, undefined behaviour\n");
     }
     char *httpData;
@@ -235,7 +235,7 @@ int ovLogin(oneviewSession *session)
 
 int ovPostProfile(oneviewSession *session, char *profile)
 {
-    if (session->version == NULL) {
+    if (session->version == 0) {
         printf("[WARNING], ensure that version has been discovered before attempting to use API for logging in, undefined behaviour\n");
     }
     char *httpData;
@@ -270,7 +270,7 @@ int ovPostProfile(oneviewSession *session, char *profile)
 
 int ovDeleteProfile(oneviewSession *session, char *profile)
 {
-    if (session->version == NULL) {
+    if (session->version == 0) {
         printf("[WARNING], ensure that version has been discovered before attempting to use API for logging in, undefined behaviour\n");
     }
     char *httpData;
