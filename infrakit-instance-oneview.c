@@ -1,9 +1,7 @@
 
  // infrakit-instance-oneview.c
  
- /*
- *
- * instance-infrakit-oneview - A Library for interacting with HPE OneView
+ /* instance-infrakit-oneview - A Docker InfraKit plugin for HPE OneView
  *
  * Dan Finneran <finneran@hpe.com>
  *
