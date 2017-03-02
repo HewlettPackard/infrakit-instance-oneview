@@ -181,34 +181,41 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
     if (paramsJSON) {
         // Check for the properties object
         json_t *properties = json_object_get(paramsJSON, "Properties");
-        json_t *session = json_object_get(properties, "OneView");
+        json_t *ovCredentials = json_object_get(properties, "OneView");
         // Check for the session details first as these are required for interacting with OneView
-        if (session) {
-            const char *address = getenv("OV_ADDRESS");
+        const char *address = getenv("OV_ADDRESS");
+        const char *username = getenv("OV_USERNAME");
+        const char *password = getenv("OV_PASSWORD");
+
+        if (ovCredentials) {
             if (!address) {
-                ovPrintWarning(getPluginTime(), "Environment variable OV_ADDRESS not set, looking in JSON config");
-                address = json_string_value(json_object_get(session, "OneViewAddress"));
+                ovPrintInfo(getPluginTime(), "Environment variable OV_ADDRESS not set, looking in JSON config");
+                address = json_string_value(json_object_get(ovCredentials, "OneViewAddress"));
             }
-            const char *username = getenv("OV_USERNAME");
             if (!username) {
                 ovPrintWarning(getPluginTime(), "Environment variable OV_USERNAME not set, looking in JSON config");
-                username = json_string_value(json_object_get(session, "OneViewUsername"));
+                username = json_string_value(json_object_get(ovCredentials, "OneViewUsername"));
             }
-            const char *password = getenv("OV_PASSWORD");
             if (!password) {
                 ovPrintWarning(getPluginTime(), "Environment variable OV_PASSWORD not set, looking in JSON config");
-                password = json_string_value(json_object_get(session, "OneViewPassword"));
-            }
-            // ensure none of these values are NULL before attempting to log in
-            if (address && username && password) {
-                if (instanceLogin(address, username, password) == EXIT_FAILURE) {
-                    printf("Error with Credentials\n");
-                }
+                password = json_string_value(json_object_get(ovCredentials, "OneViewPassword"));
             }
         }
+        // ensure none of these values are NULL before attempting to log in
+
+        if (address && username && password) {
+            if (instanceLogin(address, username, password) == EXIT_FAILURE) {
+                ovPrintError(getPluginTime(), "Login Failed");
+                return NULL;
+            }
+        } else {
+            ovPrintError(getPluginTime(), "No Credentials supplied to OneView");
+            return NULL;
+        }
+        
         if (properties && infrakitSession) {
             if (!infrakitSession->cookie) {
-                printf("Can't make changes to OneView without a session");
+                ovPrintError(getPluginTime(), "OneView session not found");
                 return NULL;
             }
             
