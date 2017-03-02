@@ -312,7 +312,7 @@ int ovDeleteProfile(oneviewSession *session, char *profile)
 int writeDataToUserFile(oneviewSession *session)
 {
     if (!session->cookie) {
-        printf("Not logged into HP OneView host\n");
+        printf("Not logged into HPE OneView host\n");
         return 0; // No Cookie to write
     }
     FILE *fp;

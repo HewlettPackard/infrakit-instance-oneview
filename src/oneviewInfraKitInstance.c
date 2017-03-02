@@ -184,9 +184,21 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
         json_t *session = json_object_get(properties, "OneView");
         // Check for the session details first as these are required for interacting with OneView
         if (session) {
-            const char *address = json_string_value(json_object_get(session, "OneViewAddress"));
-            const char *username = json_string_value(json_object_get(session, "OneViewUsername"));
-            const char *password = json_string_value(json_object_get(session, "OneViewPassword"));
+            const char *address = getenv("OV_ADDRESS");
+            if (!address) {
+                ovPrintWarning(getPluginTime(), "Environment variable OV_ADDRESS not set, looking in JSON config");
+                address = json_string_value(json_object_get(session, "OneViewAddress"));
+            }
+            const char *username = getenv("OV_USERNAME");
+            if (!username) {
+                ovPrintWarning(getPluginTime(), "Environment variable OV_USERNAME not set, looking in JSON config");
+                username = json_string_value(json_object_get(session, "OneViewUsername"));
+            }
+            const char *password = getenv("OV_PASSWORD");
+            if (!password) {
+                ovPrintWarning(getPluginTime(), "Environment variable OV_PASSWORD not set, looking in JSON config");
+                password = json_string_value(json_object_get(session, "OneViewPassword"));
+            }
             // ensure none of these values are NULL before attempting to log in
             if (address && username && password) {
                 if (instanceLogin(address, username, password) == EXIT_FAILURE) {
