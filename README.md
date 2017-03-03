@@ -1,4 +1,4 @@
-# infrakit-instance-oneView
+# infrakit-instance-oneview
 This is a Docker InfraKit Instance Plugin that is designed to automate the provisioning of "Instances" through HPE OneView (Servers currently). This plugin is driven by configuration that is passed in to Docker InfraKit typically using the group plugin to manage numerous instances or numerous groups of instances (multi-tenancy of sorts).
 
 
