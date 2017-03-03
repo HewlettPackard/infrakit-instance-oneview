@@ -92,8 +92,10 @@ InfraKit Instance Plugin for Docker
 ## NEXT STEPS
 
 
-[ More to come]
-
+* Support for Storage instances
+* Support for Network instances
+* HPE Synergy testing[ongoing]
+* Streamlining of the internal JSON handling (reduce memory foot print of plugin)
 
 # Copyright and license
 
