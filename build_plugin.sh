@@ -13,6 +13,7 @@ rm  jansson-2.9.tar.gz
 echo ""
 echo ""
 echo Libraries and headers added into /lib and /headers
-
-gcc ./src/*.c ./infrakit-instance-oneview.c -I./headers -L./lib -std=c99 -o3 -ljansson -lcurl -o infrakit-instance-oneview
-
+echo ...
+echo Building infrakit-instance-oneview
+gcc infrakit-instance-oneview.c ./src/*.c -std=gnu99 -o3 -s -I./headers -L./lib -ljansson -lcurl -o infrakit-instance-oneview
+ls -la ./infrakit-instance-oneview
