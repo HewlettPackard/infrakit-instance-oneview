@@ -14,7 +14,7 @@
 
 
 #include "oneview.h"
-#include "oneviewHttp.h"
+#include "oneviewHTTP.h"
 
 #include <stdio.h>
 #include <string.h>
