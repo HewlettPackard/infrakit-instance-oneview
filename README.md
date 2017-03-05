@@ -42,9 +42,11 @@ To pass authentication credentials to the HPE OneView plugin, it should be start
 
 As with all InfraKit plugins, the group plugin will define the *"amount"* of instances that need to be provisioned the instance plugins. The group plugin will then pass the instance configuration to the plugin as many times as needed. The main points of note in the instance configuration:
 
-`TemplateName` = **[required]** This has to match (case sensitive) a pre-created OneView template
+`TemplateName : string` = **[required]** This has to match (case sensitive) a pre-created OneView template
 
-`ProfileName` = This is a prefix to created instances e.g. `{ProfileName}-12453647587698023425365`
+`ProfileName : string` = This is a prefix to created instances e.g. `{ProfileName}-12453647587698023425365`
+
+`powerState : true/false` = plugin will power off available servers so profiles can be applied
 
 `OneView : {} ` = **[deprecated]** This should only be used for testing and will generate warnings, use environment variables for these settings (see above)
 

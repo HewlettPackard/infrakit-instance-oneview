@@ -24,7 +24,7 @@
 
 
 char *httpsAuth;    // String set as User:Pass
-char *httpData;     // Data to send to web service
+const char *httpData;     // Data to send to web service
 long portNumber;     // Set the port to be used by curl
 int httpMethod;     // Method used to send Data to WebServer
 
@@ -144,7 +144,7 @@ void setHttpPort(long httpPort)
     portNumber = httpPort;
 }
 
-void setHttpData(char* dataString)
+void setHttpData(const char* dataString)
 {
     httpData = dataString;
 }

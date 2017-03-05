@@ -260,12 +260,10 @@ int ovPostProfile(oneviewSession *session, char *profile)
     httpData = httpFunction(session->debug->usedAddress);
     
     if(!httpData) {
-        free(profile);
         return EXIT_FAILURE;
     }
 
     // release allocated memory
-    free (profile);
     free (httpData);
     return EXIT_SUCCESS;
 }
@@ -301,7 +299,44 @@ int ovDeleteProfile(oneviewSession *session, char *profile)
     return EXIT_SUCCESS;
 }
 
-
+int ovPowerOffHardware(oneviewSession *session, const char *hardwareURI)
+{
+    if (session->version == 0) {
+        printf("[WARNING], ensure that version has been discovered before attempting to use API for logging in, undefined behaviour\n");
+    }
+    char *httpData;
+    
+    // Wipe the contents of the allocated memory
+    memset(session->debug->usedAddress, 0, 1024);
+    // Create the url
+    char powerURL[1024];
+    snprintf(powerURL, 1024, "%s/powerState", hardwareURI);
+    
+    // Create the url and store it in the debug structure
+    createURL(session, powerURL);
+    
+    json_t *powerJSON = json_pack("{s:s,s:s}", "powerState", "Off", "powerControl", "PressAndHold");
+    char *powerJSONText = json_dumps(powerJSON, JSON_ENSURE_ASCII);
+    // Add the JSON test to be posted
+    setHttpData(powerJSONText);
+    
+    // pass the session struct for the X-API_Version
+    setOVHeaders(session);
+    // Sett HTTP Method to POST
+    SetHttpMethod(DCHTTPPUT);
+    // Call the function
+    httpData = httpFunction(session->debug->usedAddress);
+    
+    if(!httpData) {
+        json_decref(powerJSON);
+        return EXIT_FAILURE;
+    }
+    
+    // release allocated memory
+    json_decref(powerJSON);
+    free (httpData);
+    return EXIT_SUCCESS;
+}
 
  /*
   *

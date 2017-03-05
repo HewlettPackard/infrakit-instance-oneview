@@ -19,7 +19,20 @@
 #include <strings.h>
 #include <stdlib.h>
 
+/* jsonrpc error return codes
+ */
+
 json_int_t parse_error = -32700;
+json_int_t invald_request = -32600;
+json_int_t method_not_found = -32601;
+json_int_t invalid_params = -32602;
+json_int_t internal_error = -32603;
+
+/* global variable used by functions to identify if they should modify the power
+ * state when attempting to apply a profile.
+ */
+
+json_t *powerState;
 
 /* This session is for the duration of InfraKit and isn't designed to renew
  * cookies once they have expired
@@ -91,10 +104,25 @@ char *findFreeHardware(oneviewSession *session, const char *hardwareTypeuri)
                         
                         } else {
                             const char *assignedProfile = json_string_value(json_object_get(memberValue, "serverProfileUri"));
+
                             if (!assignedProfile) {
-                                char *availableHarware = strdup(uri);
-                                json_decref(hardwareJSON);
-                                return availableHarware;
+                                // Found a server that is free
+                                if (json_is_true(powerState)) {
+                                    const char *power = json_string_value(json_object_get(memberValue, "powerState"));
+                                    if ((power) && stringMatch(power, "On")) {
+                                        // Free server has been found, however its power state is "on"
+                                        ovPrintInfo(getPluginTime(), "Available server being powered off, so profile can be applied");
+                                        ovPowerOffHardware(session, uri);
+                                    } else {
+                                        char *availableHarware = strdup(uri);
+                                        json_decref(hardwareJSON);
+                                        return availableHarware;
+                                    }
+                                } else {
+                                    char *availableHarware = strdup(uri);
+                                    json_decref(hardwareJSON);
+                                    return availableHarware;
+                                }
                             }
                         }
                     }
@@ -229,6 +257,10 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
             // Name to use when creating the server profile
             const char *profileName = json_string_value(json_object_get(properties, "ProfileName"));
             profile *foundServer = NULL;
+            
+            // Check to see if powerState variable is set (NULL if not set)
+            powerState = json_object_get(properties, "powerState");
+            
             if (templateName) {
                  foundServer = mapProfileNameToURI(infrakitSession, templateName);
                 if (!foundServer) {
@@ -272,6 +304,7 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
                             newInstance->instanceName = strdup(foundServer->profileName);
                             newInstance->instanceType = INSTANCE_SERVER_PROFILE;
                             freeServerProfile(foundServer);
+                            free(rawProfileJSON);
                             return newInstance;
                         }
                         json_decref(newProfileJSON);

@@ -20,7 +20,7 @@
 
 void setHttpAuth(char* authString);
 void appendHttpHeader(char *header);
-void setHttpData(char* dataString);
+void setHttpData(const char* dataString);
 void setHttpPort (long httpPort);
 void SetHttpMethod(int method);
 char *httpFunction(char *url);

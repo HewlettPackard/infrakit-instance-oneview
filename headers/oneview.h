@@ -65,11 +65,12 @@ oneviewSession *initSession();
 int loadSession(oneviewSession *session);
 
  /* int create/delete profiles uses a profileURI
-  *
+  * int poweroff requires a hardware URI
   */
 
 int ovPostProfile(oneviewSession *session, char *profile);
 int ovDeleteProfile(oneviewSession *session, char *profile);
+int ovPowerOffHardware(oneviewSession *session, const char *hardwareURI);
 
 /*
  * oneviewQuery *initQuery()
