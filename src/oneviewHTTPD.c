@@ -508,20 +508,17 @@ int receive(int socket)
 
 
 
-
- /* TEST FUNCTION, this will start the listener on the correct socket or port
-  *
-  */
-
-void start()
+void startHTTPDServer()
 {
-   
-    
+    // This will create a socket
     createUNIXSocket();
+    // We will bind the plugin socket file to the socket structure
     bindToUNIXSocket();
+    // Instruct the socket to listen to incoming connections
     startListener();
     
     while (1) {
+        // As connections come in, accept them and start processing them
         acceptConnection();
     }
 

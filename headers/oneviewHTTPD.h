@@ -50,7 +50,7 @@ typedef struct {
 //#define OV_HTTPD_POST 3
 
 
-void start();
+void startHTTPDServer();
 httpRequest *processHttpRequest(char *rawData);
 int setSocketPath(char *path);
 int setHTTPResponse(char *messageBody, int responseCode);

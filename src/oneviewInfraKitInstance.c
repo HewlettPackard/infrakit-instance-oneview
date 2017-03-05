@@ -563,9 +563,16 @@ char *ovInfraKitInstanceDescribe(json_t *params, long long id)
 
 char *ovInfraKitInstanceDestroy(json_t *params, long long id)
 {
+    
     int InstanceRemoved;
 
+    /* The InstanceID is the Hardware URI, which is the unique identifier for a
+     * physical server inside of HPE OneView
+     */
+    
     const char *instanceID = json_string_value(json_object_get(params, "Instance"));
+    
+    
     char *physicalID = returnValueFromInstanceKey((char *)instanceID, "LogicalID");
 
     if (loginFromState() == EXIT_SUCCESS) {

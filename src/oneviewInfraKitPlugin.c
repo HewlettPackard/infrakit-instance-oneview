@@ -62,17 +62,19 @@ char *handlePostData(httpRequest *request)
         long long id = json_integer_value(json_object_get(requestJSON, "id"));
         json_t *params = json_object_get(requestJSON, "params");
 
+        /* Look through the parameters to determing the group ID, this is
+         * needed for multi-tenancy groups. The problem here is that the instance.destroy
+         * doesn't have a group tag
+         */
+        
         const char *groupName = json_string_value(json_object_get(json_object_get(params, "Tags"), "infrakit.group"));
         if (!groupName) {
             json_t *spec = json_object_get(params, "Spec");
             groupName = json_string_value(json_object_get(json_object_get(spec, "Tags"), "infrakit.group"));
         }
-        char statePath[PATH_MAX];
 
-        if (!groupName) {
-            const char *temp = json_dumps(params, JSON_INDENT(3));
-            //printf("%s", temp);
-        } else {
+        if (groupName) {
+            char statePath[PATH_MAX];
             snprintf(statePath, PATH_MAX, "%s/.infrakit/state/%s.json", getenv("HOME"), groupName);
             
             if (!getArgStatePath()) {
@@ -80,17 +82,16 @@ char *handlePostData(httpRequest *request)
             } else {
                 setStatePath(getArgStatePath());
             }
-            
+        } else {
+            ovPrintDebug(getPluginTime(), "No InfraKit Group discovered, this could be a delete function");
         }
-        
-        
-        
+
         
         const char *debugMessage = json_dumps(requestJSON, JSON_INDENT(3));
         ovPrintDebug(getPluginTime(), "Incoming Request =>");
         ovPrintDebug(getPluginTime(), debugMessage);
         
-        if (stringMatch((char *)methodName, "Instance.DescribeInstances")) {
+        if (stringMatch(methodName, "Instance.DescribeInstances")) {
 
             char *response = ovInfraKitInstanceDescribe(params, id);
             ovPrintDebug(getPluginTime(), "Outgoing Response =>");
@@ -99,7 +100,7 @@ char *handlePostData(httpRequest *request)
             json_decref(requestJSON);
             return NULL;
         }
-        if (stringMatch((char *)methodName, "Handshake.Implements")) {
+        if (stringMatch(methodName, "Handshake.Implements")) {
             //{"jsonrpc":"2.0","result":{"APIs":[{"Name":"Instance","Version":"0.1.0"}]},"id":3618748489630577360}
 
             json_t *reponseJSON = json_pack("{s:s,s:{s:[{s:s,s:s}]},s:I}", "jsonrpc", "2.0", "result", "APIs", "Name", "Instance", "Version", "0.3.0", "id", id);
@@ -108,7 +109,7 @@ char *handlePostData(httpRequest *request)
             json_decref(requestJSON);
             return NULL;
         }
-        if (stringMatch((char *)methodName, "Instance.Validate")) {
+        if (stringMatch(methodName, "Instance.Validate")) {
             
             json_t *reponseJSON = json_pack("{s:{s:b},s:s?,s:I}", "result", "OK", JSON_TRUE, "error", NULL, "id", id);
             char *test = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
@@ -117,7 +118,7 @@ char *handlePostData(httpRequest *request)
             return NULL;
         }
         
-        if (stringMatch((char *)methodName, "Instance.Provision")) {
+        if (stringMatch(methodName, "Instance.Provision")) {
             
             json_t *spec = json_object_get(params, "Spec");
             char *response = ovInfraKitInstanceProvision(spec, id);
@@ -127,7 +128,7 @@ char *handlePostData(httpRequest *request)
             json_decref(requestJSON);
             return NULL;
         }
-        if (stringMatch((char *)methodName, "Instance.Destroy")) {
+        if (stringMatch(methodName, "Instance.Destroy")) {
             char *response = ovInfraKitInstanceDestroy(params, id);
             ovPrintDebug(getPluginTime(), "Outgoing Response =>");
             ovPrintDebug(getPluginTime(), response);
@@ -135,7 +136,7 @@ char *handlePostData(httpRequest *request)
             json_decref(requestJSON);
             return NULL;
         }
-        if (stringMatch((char *)methodName, "Instance.Meta")) {
+        if (stringMatch(methodName, "Instance.Meta")) {
             char *response = ovInfraKitInstanceDestroy(params, id);
             ovPrintDebug(getPluginTime(), "Outgoing Response =>");
             ovPrintDebug(getPluginTime(), response);
@@ -191,18 +192,18 @@ int ovCreateInfraKitInstance()
         ovPrintWarning(getPluginTime(), "Directory .InfraKit may already exist");
     }
     
-    
-    char *statePath = getStatePath();
-    if (!statePath) {
-        char buildStatePath[PATH_MAX];
-        sprintf(buildStatePath, "%sstate/",socketPath);
-        response = mkdir(buildStatePath, 0755);
-        if (response == -1) {
-            ovPrintWarning(getPluginTime(), "Directory .InfraKit/state/ may already exist");
-        }
-        strcat(buildStatePath, "oneview.json");
-        statePath = buildStatePath;
-    }
+//    
+//    char *statePath = getStatePath();
+//    if (!statePath) {
+//        char buildStatePath[PATH_MAX];
+//        sprintf(buildStatePath, "%sstate/",socketPath);
+//        response = mkdir(buildStatePath, 0755);
+//        if (response == -1) {
+//            ovPrintWarning(getPluginTime(), "Directory .InfraKit/state/ may already exist");
+//        }
+//        strcat(buildStatePath, "oneview.json");
+//        statePath = buildStatePath;
+//    }
 
     
     strcat(socketPath, "plugins/");
@@ -219,14 +220,11 @@ int ovCreateInfraKitInstance()
     
     ovPrintInfo(getPluginTime(), "Path for UNIX Socket =>");
     ovPrintInfo(getPluginTime(), socketPath);
-    //ovPrintInfo(getPluginTime(), "Path for State File =>");
-    //ovPrintInfo(getPluginTime(), statePath);
     
     setSocketPath(socketPath);
-    //setStatePath(statePath);
-    
+
     SetPostFunction(handlePostData);
 
-    start();
+    startHTTPDServer();
     return EXIT_SUCCESS;
 }
