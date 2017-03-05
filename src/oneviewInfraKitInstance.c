@@ -14,7 +14,7 @@
 #include "oneviewInfraKitInstance.h"
 #include "oneviewInfraKitConsole.h"
 #include "oneviewInfraKitPlugin.h"
-#include "oneviewInfrakitState.h"
+#include "oneviewInfraKitState.h"
 #include "oneview.h"
 #include <strings.h>
 #include <stdlib.h>

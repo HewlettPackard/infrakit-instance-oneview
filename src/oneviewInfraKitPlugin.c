@@ -17,7 +17,7 @@
 #include "oneviewInfraKitInstance.h"
 #include "oneviewInfraKitPlugin.h"
 #include "oneviewInfraKitState.h"
-#include "oneviewHttpd.h"
+#include "oneviewHTTP.h"
 
 #include <stdio.h>
 #include <stdlib.h>

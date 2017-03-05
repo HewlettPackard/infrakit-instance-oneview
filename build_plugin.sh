@@ -14,5 +14,5 @@ echo ""
 echo ""
 echo Libraries and headers added into /lib and /headers
 
-gcc ./src/*.c ./infrakit-instance-oneview.c -I./headers -L./lib -ljansson -lcurl -o infrakit-instance-oneview
+gcc ./src/*.c ./infrakit-instance-oneview.c -I./headers -L./lib -std=c99 -o3 -ljansson -lcurl -o infrakit-instance-oneview
 

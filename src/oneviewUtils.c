@@ -13,7 +13,7 @@
 
 
 #include "oneview.h"
-#include "oneviewHttp.h"
+#include "oneviewHTTP.h"
 
 #include <jansson.h>
 #include <unistd.h>
