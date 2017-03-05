@@ -16,7 +16,7 @@
 #include "oneviewInfraKitPlugin.h"
 #include "oneviewInfraKitState.h"
 #include "oneview.h"
-#include <strings.h>
+#include <string.h>
 #include <stdlib.h>
 
 /* jsonrpc error return codes

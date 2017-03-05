@@ -21,11 +21,21 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 #include <signal.h>
 #include <sys/stat.h>
-#include <limits.h>
 #include <unistd.h>
+
+/* Added in OS specific includes to allow compilation on Linux / OSX
+ */
+
+#if defined(__linux__)
+#include <linux/limits.h>
+#endif
+
+#if defined(__APPLE__)
+#include <limits.h>
+#endif
 
 #include "jansson.h"
 
