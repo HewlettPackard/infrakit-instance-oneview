@@ -111,7 +111,7 @@ char *findFreeHardware(oneviewSession *session, const char *hardwareTypeuri)
                                     const char *power = json_string_value(json_object_get(memberValue, "powerState"));
                                     if ((power) && stringMatch(power, "On")) {
                                         // Free server has been found, however its power state is "on"
-                                        ovPrintInfo(getPluginTime(), "Available server being powered off, so profile can be applied");
+                                        ovPrintInfo(getPluginTime(), "Available server being powered off, so profile can be applied\n");
                                         ovPowerOffHardware(session, uri);
                                     } else {
                                         char *availableHarware = strdup(uri);
@@ -178,7 +178,7 @@ profile *mapProfileNameToURI(oneviewSession *session, const char *profileName)
                                 // Check if hardware is available before building rest of new profile
                                 char *availHWURI = findFreeHardware(session, hardwareuri);
                                 if (!availHWURI) {
-                                    ovPrintError(getPluginTime(), "No Server Hardware is available");
+                                    ovPrintError(getPluginTime(), "No Server Hardware is available\n");
                                     json_decref(profileJSON);
                                     return NULL;
                                 }
@@ -217,15 +217,15 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
 
         if (ovCredentials) {
             if (!address) {
-                ovPrintInfo(getPluginTime(), "Environment variable OV_ADDRESS not set, looking in JSON config");
+                ovPrintInfo(getPluginTime(), "Environment variable OV_ADDRESS not set, looking in JSON config\n");
                 address = json_string_value(json_object_get(ovCredentials, "OneViewAddress"));
             }
             if (!username) {
-                ovPrintWarning(getPluginTime(), "Environment variable OV_USERNAME not set, looking in JSON config");
+                ovPrintWarning(getPluginTime(), "Environment variable OV_USERNAME not set, looking in JSON config\n");
                 username = json_string_value(json_object_get(ovCredentials, "OneViewUsername"));
             }
             if (!password) {
-                ovPrintWarning(getPluginTime(), "Environment variable OV_PASSWORD not set, looking in JSON config");
+                ovPrintWarning(getPluginTime(), "Environment variable OV_PASSWORD not set, looking in JSON config\n");
                 password = json_string_value(json_object_get(ovCredentials, "OneViewPassword"));
             }
         }
@@ -233,17 +233,17 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
 
         if (address && username && password) {
             if (instanceLogin(address, username, password) == EXIT_FAILURE) {
-                ovPrintError(getPluginTime(), "Login Failed");
+                ovPrintError(getPluginTime(), "Login Failed\n");
                 return NULL;
             }
         } else {
-            ovPrintError(getPluginTime(), "No Credentials supplied to OneView");
+            ovPrintError(getPluginTime(), "No Credentials supplied to OneView\n");
             return NULL;
         }
         
         if (properties && infrakitSession) {
             if (!infrakitSession->cookie) {
-                ovPrintError(getPluginTime(), "OneView session not found");
+                ovPrintError(getPluginTime(), "OneView session not found\n");
                 return NULL;
             }
             
@@ -264,7 +264,7 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
             if (templateName) {
                  foundServer = mapProfileNameToURI(infrakitSession, templateName);
                 if (!foundServer) {
-                    ovPrintError(getPluginTime(), "Available Hardware could not be found");
+                    ovPrintError(getPluginTime(), "Available Hardware could not be found\n");
                     return NULL;
                 }
 
@@ -279,8 +279,9 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
                     sprintf(newName, "%s-%llu", templateName, id);
                     foundServer->profileName = strdup(newName);
                 }
-                
-                ovPrintInfo(getPluginTime(), foundServer->profileName);
+                char ovOutput[1024];
+                sprintf(ovOutput, "Creating Instance => %s\n", foundServer->profileName);
+                ovPrintInfo(getPluginTime(), ovOutput);
                 
                 char *newProfile = ovQueryNewServerProfileTemplates(infrakitSession, NULL, foundServer->uri);
                 if (newProfile) {
@@ -357,7 +358,7 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
                             ovQueryNetworks(infrakitSession, NULL);
                         
                         } else {
-                            ovPrintError(getPluginTime(), "Error with commited networking configuration");
+                            ovPrintError(getPluginTime(), "Error with commited networking configuration\n");
                         }
                     }
                 }
@@ -483,7 +484,7 @@ int synchroniseStateWithPhysical()
             long retry_counter = strtol(counterString, &endPointer, 10);
             char debugString[1024];
             
-            snprintf(debugString, 1024, "HW = %s Remaining = %zu", hardwareURI, retry_counter);
+            snprintf(debugString, 1024, "HW = %s Remaining = %zu\n", hardwareURI, retry_counter);
             ovPrintDebug(getPluginTime(), debugString);
 
             if (hardwareURI) {
@@ -496,7 +497,7 @@ int synchroniseStateWithPhysical()
                     if (stringMatch(state, "ProfileApplied")) {
                         json_string_set(json_object_get(tags, "retry-count"), "0");
                     } else {
-                        ovPrintDebug(getPluginTime(), "Still applying Server Profile");
+                        ovPrintDebug(getPluginTime(), "Still applying Server Profile\n");
                     }
                     
                     json_array_append(currentInstances, memberValue);
@@ -607,21 +608,23 @@ char *ovInfraKitInstanceDestroy(json_t *params, long long id)
     const char *instanceID = json_string_value(json_object_get(params, "Instance"));
     
     
-    char *physicalID = returnValueFromInstanceKey((char *)instanceID, "LogicalID");
+    char *physicalID = returnValueFromInstanceKey(instanceID, "LogicalID");
 
     if (loginFromState() == EXIT_SUCCESS) {
         if (destroyServerProfile(physicalID) == EXIT_SUCCESS) {
             if (instanceID) {
-                InstanceRemoved = removeInstanceFromState((char *)instanceID);
+                InstanceRemoved = removeInstanceFromState(instanceID);
             }
         } else {
-            ovPrintError(getPluginTime(), "Failed to remove instance =>");
+            ovPrintError(getPluginTime(), "Failed to remove instance =>\n");
             if (instanceID){
-                ovPrintError(getPluginTime(), (char *)instanceID);
+                ovPrintError(getPluginTime(), instanceID);
+                ovPrintError(getPluginTime(), "\n");
+
             }
         }
     } else {
-        ovPrintError(getPluginTime(), "Error connecting to HPE OneView");
+        ovPrintError(getPluginTime(), "Error connecting to HPE OneView\n");
         return NULL;
     }
     char *successProvisionResponse = "{s:s,s:{s:s?},s:I}";
@@ -629,8 +632,11 @@ char *ovInfraKitInstanceDestroy(json_t *params, long long id)
     char *response;
     json_t *responseJSON;
     if (InstanceRemoved == EXIT_SUCCESS) {
-        ovPrintInfo(getPluginTime(), "Removing instance =>");
-        ovPrintInfo(getPluginTime(), (char *)instanceID);
+        // Announce the server profile being removed
+        char ovOutput[1024];
+        sprintf(ovOutput, "Removing Instance => %s\n", instanceID);
+        ovPrintInfo(getPluginTime(), ovOutput);
+        
         responseJSON = json_pack(successProvisionResponse,  "jsonrpc", "2.0",                   \
                                                             "result",                           \
                                                                 "Instance", instanceID,         \

@@ -228,27 +228,27 @@ char *httpFunction(char *url)
     
     switch (code) {
         case 200:
-            ovPrintDebug(getPluginTime(), "POST returned 200");
+            ovPrintDebug(getPluginTime(), "POST returned 200\n");
             break;
         case 201:
-            ovPrintDebug(getPluginTime(), "POST returned 201, and has been submitted");
+            ovPrintDebug(getPluginTime(), "POST returned 201, and has been submitted\n");
             break;
         case 202:
-            ovPrintDebug(getPluginTime(), "POST returned 202, and has been accepted");
+            ovPrintDebug(getPluginTime(), "POST returned 202, and has been accepted\n");
             break;
         case 400:
 //                    printf(ANSI_COLOR_RED "[DEBUG]" ANSI_COLOR_RESET " Malformed request something in the JSON is broken");
-            ovPrintWarning(getPluginTime(), "POST returned 400, Malformed request as something in the JSON is broken");
+            ovPrintWarning(getPluginTime(), "POST returned 400, Malformed request as something in the JSON is broken\n");
             if (getPluginTime() >= LOGDEBUG) {
             if (data)
                 printf("%s", data);
             }
             break;
         case 401:
-            ovPrintWarning(getPluginTime(), "POST returned 401, POST failure (usually and authentication issue)");
+            ovPrintWarning(getPluginTime(), "POST returned 401, POST failure (usually and authentication issue)\n");
             break;
         case 409:
-            ovPrintWarning(getPluginTime(), "POST returned 409, Conflict error, the request \"may\" have succeeded");
+            ovPrintWarning(getPluginTime(), "POST returned 409, Conflict error, the request \"may\" have succeeded\n");
             break;
         default:
             break;
@@ -256,7 +256,7 @@ char *httpFunction(char *url)
     
     if(code > 500)
     {
-        ovPrintError(getPluginTime(), "Error 500+");
+        ovPrintError(getPluginTime(), "Error 500+\n");
         goto error;
     }
     

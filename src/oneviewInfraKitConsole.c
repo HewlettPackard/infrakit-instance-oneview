@@ -69,7 +69,7 @@ int getConsoleOutputLevel()
 int ovPrintCritical(signed long pluginTime, const char *message)
 {
     if (outputLevel >= LOGCRITICAL) {
-        printf(ANSI_COLOR_MAGENTA"CRIT[%05zu]"ANSI_COLOR_RESET" %s\n", pluginTime, message);
+        printf(ANSI_COLOR_MAGENTA"CRIT[%05zu]"ANSI_COLOR_RESET" %s", pluginTime, message);
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;
@@ -78,7 +78,7 @@ int ovPrintCritical(signed long pluginTime, const char *message)
 int ovPrintError(signed long pluginTime, const char *message)
 {
     if (outputLevel >= LOGERROR) {
-        printf(ANSI_COLOR_RED"ERRO[%05zu]"ANSI_COLOR_RESET" %s\n", pluginTime, message);
+        printf(ANSI_COLOR_RED"ERRO[%05zu]"ANSI_COLOR_RESET" %s", pluginTime, message);
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;
@@ -87,7 +87,7 @@ int ovPrintError(signed long pluginTime, const char *message)
 int ovPrintWarning(signed long pluginTime, const char *message)
 {
     if (outputLevel >= LOGWARNING) {
-        printf(ANSI_COLOR_YELLOW"WARN[%05zu]"ANSI_COLOR_RESET" %s\n", pluginTime, message);
+        printf(ANSI_COLOR_YELLOW"WARN[%05zu]"ANSI_COLOR_RESET" %s", pluginTime, message);
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;
@@ -96,7 +96,7 @@ int ovPrintWarning(signed long pluginTime, const char *message)
 int ovPrintNotice(signed long pluginTime, const char *message)
 {
     if (outputLevel >= LOGNOTICE) {
-        printf(ANSI_COLOR_GREEN"NOTE[%05zu]"ANSI_COLOR_RESET" %s\n", pluginTime, message);
+        printf(ANSI_COLOR_GREEN"NOTE[%05zu]"ANSI_COLOR_RESET" %s", pluginTime, message);
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;
@@ -105,7 +105,7 @@ int ovPrintNotice(signed long pluginTime, const char *message)
 int ovPrintInfo(signed long pluginTime, const char *message)
 {
     if (outputLevel >= LOGINFO) {
-        printf(ANSI_COLOR_BLUE"INFO[%05zu]"ANSI_COLOR_RESET" %s\n", pluginTime, message);
+        printf(ANSI_COLOR_BLUE"INFO[%05zu]"ANSI_COLOR_RESET" %s", pluginTime, message);
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;
@@ -114,7 +114,7 @@ int ovPrintInfo(signed long pluginTime, const char *message)
 int ovPrintDebug(signed long pluginTime, const char *message)
 {
     if (outputLevel >= LOGDEBUG) {
-        printf(ANSI_COLOR_BLUE"DEBG[%05zu]"ANSI_COLOR_RESET" %s\n", pluginTime, message);
+        printf(ANSI_COLOR_BLUE"DEBG[%05zu]"ANSI_COLOR_RESET" %s", pluginTime, message);
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;

@@ -14,6 +14,7 @@
 
 #include "oneview.h"
 #include "oneviewHTTP.h"
+#include "oneviewInfraKitConsole.h"
 
 #include <jansson.h>
 #include <unistd.h>
@@ -238,8 +239,14 @@ int ovLogin(oneviewSession *session)
 int ovPostProfile(oneviewSession *session, char *profile)
 {
     if (session->version == 0) {
-        printf("[WARNING], ensure that version has been discovered before attempting to use API for logging in, undefined behaviour\n");
+        ovPrintWarning(getPluginTime(), "HPE Version not discovered, undefined API behavior (checking for session key)\n");
     }
+    
+    if (!session->cookie) {
+        ovPrintError(getPluginTime(), "No HPE OneView session Key, can't create profile without being logged in\n");
+        return EXIT_FAILURE;
+    }
+    
     char *httpData;
 
     // Wipe the contents of the allocated memory
@@ -271,7 +278,12 @@ int ovPostProfile(oneviewSession *session, char *profile)
 int ovDeleteProfile(oneviewSession *session, char *profile)
 {
     if (session->version == 0) {
-        printf("[WARNING], ensure that version has been discovered before attempting to use API for logging in, undefined behaviour\n");
+        ovPrintWarning(getPluginTime(), "HPE Version not discovered, undefined API behavior (checking for session key)\n");
+    }
+    
+    if (!session->cookie) {
+        ovPrintError(getPluginTime(), "No HPE OneView session Key, can't remove profile without being logged in\n");
+        return EXIT_FAILURE;
     }
     char *httpData;
     
@@ -302,7 +314,12 @@ int ovDeleteProfile(oneviewSession *session, char *profile)
 int ovPowerOffHardware(oneviewSession *session, const char *hardwareURI)
 {
     if (session->version == 0) {
-        printf("[WARNING], ensure that version has been discovered before attempting to use API for logging in, undefined behaviour\n");
+        ovPrintWarning(getPluginTime(), "HPE Version not discovered, undefined API behavior (checking for session key)\n");
+    }
+    
+    if (!session->cookie) {
+        ovPrintError(getPluginTime(), "No HPE OneView session Key, can't Power off without being logged in\n");
+        return EXIT_FAILURE;
     }
     char *httpData;
     

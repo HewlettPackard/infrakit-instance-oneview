@@ -172,7 +172,7 @@ int appendInstanceToState(profile *foundServer, oneviewSession *session, json_t 
  * by using it's instanceID
  */
 
-int removeInstanceFromState(char *instanceID)
+int removeInstanceFromState(const char *instanceID)
 {
     json_t *stateJSON = openInstanceState();
     json_t *instances = json_object_get(stateJSON, "Instances");
@@ -214,7 +214,7 @@ int removeInstanceFromState(char *instanceID)
  * instances.
  */
 
-char *returnValueFromInstanceKey(char *InstanceID, char *key)
+char *returnValueFromInstanceKey(const char *InstanceID, char *key)
 {
     json_t *stateJSON = openInstanceState();
     if (!stateJSON) {

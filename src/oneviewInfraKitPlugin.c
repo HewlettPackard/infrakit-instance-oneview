@@ -93,18 +93,18 @@ int handlePostData(httpRequest *request)
                 setStatePath(getArgStatePath());
             }
         } else {
-            ovPrintDebug(getPluginTime(), "No InfraKit Group discovered, this could be a delete function");
+            ovPrintDebug(getPluginTime(), "No InfraKit Group discovered, this could be a delete function\n");
         }
 
         
         const char *debugMessage = json_dumps(requestJSON, JSON_INDENT(3));
-        ovPrintDebug(getPluginTime(), "Incoming Request =>");
+        ovPrintDebug(getPluginTime(), "Incoming Request =>\n");
         ovPrintDebug(getPluginTime(), debugMessage);
         
         if (stringMatch(methodName, "Instance.DescribeInstances")) {
 
             char *response = ovInfraKitInstanceDescribe(params, id);
-            ovPrintDebug(getPluginTime(), "Outgoing Response =>");
+            ovPrintDebug(getPluginTime(), "Outgoing Response =>\n");
             ovPrintDebug(getPluginTime(), response);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);
@@ -131,7 +131,7 @@ int handlePostData(httpRequest *request)
             
             json_t *spec = json_object_get(params, "Spec");
             char *response = ovInfraKitInstanceProvision(spec, id);
-            ovPrintDebug(getPluginTime(), "Outgoing Response =>");
+            ovPrintDebug(getPluginTime(), "Outgoing Response =>\n");
             ovPrintDebug(getPluginTime(), response);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);
@@ -139,7 +139,7 @@ int handlePostData(httpRequest *request)
         }
         if (stringMatch(methodName, "Instance.Destroy")) {
             char *response = ovInfraKitInstanceDestroy(params, id);
-            ovPrintDebug(getPluginTime(), "Outgoing Response =>");
+            ovPrintDebug(getPluginTime(), "Outgoing Response =>\n");
             ovPrintDebug(getPluginTime(), response);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);
@@ -147,26 +147,29 @@ int handlePostData(httpRequest *request)
         }
         if (stringMatch(methodName, "Instance.Meta")) {
             char *response = ovInfraKitInstanceDestroy(params, id);
-            ovPrintDebug(getPluginTime(), "Outgoing Response =>");
+            ovPrintDebug(getPluginTime(), "Outgoing Response =>\n");
             ovPrintDebug(getPluginTime(), response);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);
             return EXIT_SUCCESS;
         }
         if (methodName) {
-            ovPrintError(getPluginTime(), "Unknown JSON-RPC Method");
+            ovPrintError(getPluginTime(), "Unknown JSON-RPC Method\n");
         }
         json_decref(requestJSON);
         return EXIT_FAILURE;
     }
-    ovPrintError(getPluginTime(), "Can't process HTTPD POST");
+    ovPrintError(getPluginTime(), "Can't process HTTPD POST\n");
     return EXIT_FAILURE;
 }
 
-void handleInterrupt(int s){
-    printf("Caught signal %d\n",(int)s);
-    ovPrintError(getPluginTime(), "InfraKit-instance-oneview is exciting, removing UNIX Socket =>");
-    ovPrintError(getPluginTime(), socketPath);
+void handleInterrupt(int signal){
+    //printf("Caught signal %d\n",(int)s);
+    char pluginOutput[1024];
+    sprintf(pluginOutput, "Exit Signal: %d, Removing Socket: %s\n", signal, socketPath);
+    ovPrintWarning(getPluginTime(), pluginOutput);
+    //ovPrintError(getPluginTime(), "InfraKit-instance-oneview is exciting, removing UNIX Socket =>\n");
+    //ovPrintError(getPluginTime(), socketPath);
     unlink(socketPath);
 }
 
@@ -188,7 +191,7 @@ int ovCreateInfraKitInstance()
         return EXIT_FAILURE;
     }
     setConsolOutputLevel(LOGINFO);
-    ovPrintInfo(getPluginTime(), "Starting OneView Instance Plugin");
+    ovPrintInfo(getPluginTime(), "Starting OneView Instance Plugin\n");
     
     /* These two paths will build out to be the path for the socket and the state
      * we will build them out and ensure that the paths are fully created, including
@@ -200,7 +203,7 @@ int ovCreateInfraKitInstance()
     int response = 0;
     response = mkdir(socketPath, 0755);
     if (response == -1) {
-        ovPrintWarning(getPluginTime(), "Directory .InfraKit may already exist");
+        ovPrintWarning(getPluginTime(), "Directory .InfraKit may already exist\n");
     }
     
 //    
@@ -220,7 +223,7 @@ int ovCreateInfraKitInstance()
     strcat(socketPath, "plugins/");
     response = mkdir(socketPath, 0755);
     if (response == -1) {
-        ovPrintWarning(getPluginTime(), "Directory .InfraKit/plugins/ may already exist");
+        ovPrintWarning(getPluginTime(), "Directory .InfraKit/plugins/ may already exist\n");
     }
     
     if (socketName) {
@@ -228,9 +231,12 @@ int ovCreateInfraKitInstance()
     } else {
         strcat(socketPath, socketDefault);
     }
-    
-    ovPrintInfo(getPluginTime(), "Path for UNIX Socket =>");
-    ovPrintInfo(getPluginTime(), socketPath);
+    char ovOutput[1024];
+    sprintf(ovOutput, "Path for Unix Socket => %s\n", socketPath);
+//    ovPrintInfo(getPluginTime(), "Path for UNIX Socket =>");
+//    ovPrintInfo(getPluginTime(), socketPath);
+    ovPrintInfo(getPluginTime(), ovOutput);
+
     
     setSocketPath(socketPath);
 

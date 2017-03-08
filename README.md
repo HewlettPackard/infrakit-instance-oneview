@@ -46,22 +46,23 @@ As with all InfraKit plugins, the group plugin will define the *"amount"* of ins
 
 `ProfileName : string` = This is a prefix to created instances e.g. `{ProfileName}-12453647587698023425365`
 
-`powerState : true/false` = plugin will power off available servers so profiles can be applied
+`PowerOff : true/false` = plugin will power off available servers so profiles can be applied
 
 `OneView : {} ` = **[deprecated]** This should only be used for testing and will generate warnings, use environment variables for these settings (see above)
 
 ```
-"Instance": {
-      "Plugin": "instance-oneview",
-      "Properties": {
-        "Note": "Generic OneView configuration",
-        "OneView": {
-          "OneViewAddress": "192.168.0.96",
-          "OneViewUsername": "Administrator",
-          "OneViewPassword": "password"
+"Instance" : {
+      "Plugin" : "instance-oneview",
+      "Properties" : {
+        "Note" : "Generic OneView configuration",
+        "OneView" : {
+          "OneViewAddress" : "192.168.0.96",
+          "OneViewUsername" : "Administrator",
+          "OneViewPassword" : "password"
         },
-        "TemplateName": "Docker-Gen8-Template",
-        "ProfileName" : "Docker"
+        "TemplateName" : "Docker-Gen8-Template",
+        "ProfileName" : "Docker",
+        "PowerOff" : true
       }
     },
 ```
