@@ -61,7 +61,7 @@ int setSocketName(char *name)
  * server will then send to the client
  */
 
-char *handlePostData(httpRequest *request)
+int handlePostData(httpRequest *request)
 {
     json_t *requestJSON = NULL;
     json_error_t error;
@@ -108,16 +108,15 @@ char *handlePostData(httpRequest *request)
             ovPrintDebug(getPluginTime(), response);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);
-            return NULL;
+            return EXIT_SUCCESS;
         }
         if (stringMatch(methodName, "Handshake.Implements")) {
-            //{"jsonrpc":"2.0","result":{"APIs":[{"Name":"Instance","Version":"0.1.0"}]},"id":3618748489630577360}
-
+            
             json_t *reponseJSON = json_pack("{s:s,s:{s:[{s:s,s:s}]},s:I}", "jsonrpc", "2.0", "result", "APIs", "Name", "Instance", "Version", "0.3.0", "id", id);
             char *test = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
             setHTTPResponse(test, 200);
             json_decref(requestJSON);
-            return NULL;
+            return EXIT_SUCCESS;
         }
         if (stringMatch(methodName, "Instance.Validate")) {
             
@@ -125,7 +124,7 @@ char *handlePostData(httpRequest *request)
             char *test = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
             setHTTPResponse(test, 200);
             json_decref(requestJSON);
-            return NULL;
+            return EXIT_SUCCESS;
         }
         
         if (stringMatch(methodName, "Instance.Provision")) {
@@ -136,7 +135,7 @@ char *handlePostData(httpRequest *request)
             ovPrintDebug(getPluginTime(), response);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);
-            return NULL;
+            return EXIT_SUCCESS;
         }
         if (stringMatch(methodName, "Instance.Destroy")) {
             char *response = ovInfraKitInstanceDestroy(params, id);
@@ -144,7 +143,7 @@ char *handlePostData(httpRequest *request)
             ovPrintDebug(getPluginTime(), response);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);
-            return NULL;
+            return EXIT_SUCCESS;
         }
         if (stringMatch(methodName, "Instance.Meta")) {
             char *response = ovInfraKitInstanceDestroy(params, id);
@@ -152,14 +151,16 @@ char *handlePostData(httpRequest *request)
             ovPrintDebug(getPluginTime(), response);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);
-            return NULL;
+            return EXIT_SUCCESS;
         }
         if (methodName) {
             ovPrintError(getPluginTime(), "Unknown JSON-RPC Method");
         }
         json_decref(requestJSON);
+        return EXIT_FAILURE;
     }
-    return NULL;
+    ovPrintError(getPluginTime(), "Can't process HTTPD POST");
+    return EXIT_FAILURE;
 }
 
 void handleInterrupt(int s){

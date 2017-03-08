@@ -49,7 +49,7 @@ socklen_t addr_size;
 
 httpResponse *response;
 
-char *(*postCallback)(httpRequest *);
+int (*postCallback)(httpRequest *);
 
 
 /*****************************************************************/
@@ -72,7 +72,7 @@ int setSocketPath(char *path)
  *
  */
 
-void SetPostFunction( char *(*postCallbackFunction)(httpRequest *))
+void SetPostFunction( int (*postCallbackFunction)(httpRequest *))
 {
     postCallback = postCallbackFunction;
 }
@@ -387,7 +387,7 @@ int respond()
          * finally de-allocate the reponse memory
          */
 
-        if (( response->messageLength > 0) && response->messageBody) {
+        if ((response->messageLength > 0) && response->messageBody) {
             sendString(response->messageBody, connecting_socket);
             free(response->messageBody);
             free(response);
@@ -487,8 +487,12 @@ int receive(int socket)
              */
             
             response = malloc(sizeof(httpResponse));
-            postCallback(request);
-            respond();
+            int callback = postCallback(request);
+            if (callback == EXIT_SUCCESS) {
+                respond();
+            }
+            // Free
+            
             return 1;
         } else {
             // WARN, coding is incorrect

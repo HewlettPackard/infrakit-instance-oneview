@@ -259,8 +259,8 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
             profile *foundServer = NULL;
             
             // Check to see if powerState variable is set (NULL if not set)
-            powerState = json_object_get(properties, "powerState");
-            
+            powerState = json_object_get(properties, "PowerOff");
+
             if (templateName) {
                  foundServer = mapProfileNameToURI(infrakitSession, templateName);
                 if (!foundServer) {
@@ -517,6 +517,7 @@ int synchroniseStateWithPhysical()
 
         char *json_text = json_dumps(StateJSON, JSON_ENSURE_ASCII);
         saveInstanceState(json_text);
+        free(json_text);
         json_decref(StateJSON);
         return EXIT_SUCCESS;
     }

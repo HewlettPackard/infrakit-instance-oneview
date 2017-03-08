@@ -58,5 +58,5 @@ int setHTTPResponse(char *messageBody, int responseCode);
 
 #ifndef HTTPDCALLBACK_H
 #define HTTPDCALLBACK_H
-void SetPostFunction( char *(*postCallbackFunction)(httpRequest *));
+void SetPostFunction( int (*postCallbackFunction)(httpRequest *));
 #endif
