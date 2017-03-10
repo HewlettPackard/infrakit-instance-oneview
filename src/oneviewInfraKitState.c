@@ -68,10 +68,15 @@ int setArgStatePath(char *path)
  * other functions to login to OneView and speak to the API.
  */
 
-int loginFromState()
+int loginFromState(const char *groupName)
 {
+    if (!groupName) {
+        ovPrintError(getPluginTime(), "No Group could be found for state data\n");
+        return EXIT_FAILURE;
+    }
     json_t *stateJSON = openInstanceState();
-    json_t *oneViewState = json_object_get(stateJSON, "OneViewInstance");
+    json_t *group = findGroup(stateJSON, groupName);
+    json_t *oneViewState = json_object_get(group, "OneViewInstance");
     
     if ((oneViewState) && json_object_size(oneViewState) != 0) {
         const char *address = json_string_value(json_object_get(oneViewState, "address"));
@@ -91,14 +96,14 @@ int loginFromState()
 json_t *openInstanceState()
 {
     if (!statePath) {
-        ovPrintError(getPluginTime(), "No path specified for state data");
+        ovPrintError(getPluginTime(), "No path specified for state data\n");
         return NULL;
     }
     json_t *stateJSON;
     json_error_t error;
     stateJSON = json_load_file(statePath, 0, &error);
     if (!stateJSON) {
-        stateJSON = json_pack("{s:{},s:[],s:[]}", "OneViewInstance", "Instances", "NonFunctional");
+        stateJSON = json_pack("{s:s,s:[]}", "StateVersion", "0.3.0" , "OneViewGroups");
     }
     return stateJSON;
 }
@@ -106,7 +111,7 @@ json_t *openInstanceState()
 int saveInstanceState(char *jsonData)
 {
     if (!statePath) {
-        ovPrintError(getPluginTime(), "No path specified for state data");
+        ovPrintError(getPluginTime(), "No path specified for state data\n");
         return EXIT_FAILURE;
     }
     
@@ -116,13 +121,28 @@ int saveInstanceState(char *jsonData)
         fputs(jsonData, fp);
         fclose(fp);
     } else {
-        ovPrintError(getPluginTime(), "Unable to modify the state file =>");
+        ovPrintError(getPluginTime(), "Unable to modify the state file =>\n");
         ovPrintError(getPluginTime(), statePath);
         return EXIT_FAILURE;
     }
     return EXIT_SUCCESS;
 }
 
+json_t *findGroup(json_t *state, const char *groupName)
+{
+    if (state && groupName) {
+        size_t groupIndex;
+        json_t *group;
+        json_t *oneViewGroups = json_object_get(state, "OneViewGroups");
+        json_array_foreach(oneViewGroups, groupIndex, group) {
+            const char *currentGroup = json_string_value(json_object_get(group, "groupName"));
+            if (stringMatch(currentGroup, groupName)) {
+                return group;
+            }
+        }
+    }
+    return NULL;
+}
 
 /* This function will take a new profile, and attach the various details to the state data
  * HardwareURI, InstanceID (profile Name), it will also place the OneView credentials in the
@@ -131,25 +151,41 @@ int saveInstanceState(char *jsonData)
 
 int appendInstanceToState(profile *foundServer, oneviewSession *session, json_t *paramsJSON)
 {
+    json_t *tags = json_object_get(paramsJSON, "Tags");
+    const char *sha = json_string_value(json_object_get(tags, "infrakit.config_sha"));
+    const char *infrakitGroup = json_string_value(json_object_get(tags, "infrakit.group"));
+    
     json_t *stateJSON = openInstanceState();
-    json_t *instances = json_object_get(stateJSON, "Instances");
-    if (json_object_size(json_object_get(stateJSON, "OneViewInstance")) == 0) {
+    if (!stateJSON) {
+        ovPrintError(getPluginTime(), "Unable to preserve state\n");
+        return EXIT_FAILURE;
+    }
+    
+    char ovOutput[1024];
+    sprintf(ovOutput, "Opening State for Group %s\n", infrakitGroup);
+    ovPrintDebug(getPluginTime(), ovOutput);
+    
+    json_t *oneViewGroups = json_object_get(stateJSON, "OneViewGroups");
+    json_t *group = findGroup(stateJSON, infrakitGroup);
+
+    if (!group) {
+       group = json_pack ("{s:s,s:{},s:[],s:[]}", "groupName", infrakitGroup, "OneViewInstance", "Instances", "NonFunctional");
+       json_array_append(oneViewGroups, group);
+    }
+
+    json_t *instances = json_object_get(group, "Instances");
+    if (json_object_size(json_object_get(group, "OneViewInstance")) == 0) {
         char *oneviewDetails = "{s:s?,s:s?,s:s?,s:s?}";
-        
         json_t *oneviewJSON = json_pack(oneviewDetails, \
                                             "address", session->address, \
                                             "username", session->username, \
                                             "password", session->password, \
                                             "cookie", session->cookie);
         
-        json_object_set(stateJSON, "OneViewInstance", oneviewJSON);
+        json_object_set(group, "OneViewInstance", oneviewJSON);
     }
-    json_t *tags = json_object_get(paramsJSON, "Tags");
-    const char *sha = json_string_value(json_object_get(tags, "infrakit.config_sha"));
-    const char *group = json_string_value(json_object_get(tags, "infrakit.group"));
-    
+
     char *instanceDescription = "{s:s,s:s?,s:{s:s,s:s,s:s,s:s}}";
-    
     json_t *descriptionJSON = json_pack(instanceDescription, \
                                             "ID", foundServer->profileName, \
                                             "LogicalID", foundServer->availableHardwareURI, \
@@ -157,7 +193,7 @@ int appendInstanceToState(profile *foundServer, oneviewSession *session, json_t 
                                                 "hw_uri", foundServer->availableHardwareURI, \
                                                 "retry-count", INSTANCE_RETRY, \
                                                 "infrakit.config_sha", sha, \
-                                                "infrakit.group", group);
+                                                "infrakit.group", infrakitGroup);
     
     json_array_append(instances, descriptionJSON);
     char *json_text = json_dumps(stateJSON, JSON_ENSURE_ASCII);
@@ -172,10 +208,12 @@ int appendInstanceToState(profile *foundServer, oneviewSession *session, json_t 
  * by using it's instanceID
  */
 
-int removeInstanceFromState(const char *instanceID)
+int removeInstanceFromState(const char *instanceID, const char *groupName)
 {
+    
     json_t *stateJSON = openInstanceState();
-    json_t *instances = json_object_get(stateJSON, "Instances");
+    json_t *group = findGroup(stateJSON, groupName);
+    json_t *instances = json_object_get(group, "Instances");
     
     /* No Instance to compare, so failure to match
      */
@@ -214,70 +252,141 @@ int removeInstanceFromState(const char *instanceID)
  * instances.
  */
 
-char *returnValueFromInstanceKey(const char *InstanceID, char *key)
+json_t *returnObjectFromInstanceID(const char *InstanceID)
 {
-    json_t *stateJSON = openInstanceState();
-    if (!stateJSON) {
-        return NULL;
-    }
-    json_t *instances = json_object_get(stateJSON, "Instances");
-    
-    /* No Instance to compare, so failure to match
-     */
-    
-    if (json_array_size(instances) == 0) {
+    json_t *state = openInstanceState();
+    if (!state) {
         return NULL;
     }
     
-    if (instances) {
-        size_t instanceIndex;
-        json_t *instanceValue;
-        
-        json_array_foreach(instances, instanceIndex, instanceValue) {
-            const char *ID = json_string_value(json_object_get(instanceValue, "ID"));
-            if (stringMatch((char *)ID, InstanceID)) {
-                // found our instance
-                const char *value = json_string_value(json_object_get(instanceValue, key));
-                if (value) {
-                    // Key exists and has returned a value
-                    char *returnValue = strdup(value);
-                    json_decref(stateJSON);
-                    return returnValue;
+    if (state) {
+        size_t groupIndex;
+        json_t *group;
+        json_t *oneViewGroups = json_object_get(state, "OneViewGroups");
+        json_array_foreach(oneViewGroups, groupIndex, group) {
+
+            json_t *instances = json_object_get(group, "Instances");
+            
+            /* No Instance to compare, so failure to match
+             */
+//            if (json_array_size(instances) == 0) {
+//                return NULL;
+//            }
+            
+            if (instances) {
+                size_t instanceIndex;
+                json_t *instanceValue;
+                
+                json_array_foreach(instances, instanceIndex, instanceValue) {
+                    const char *ID = json_string_value(json_object_get(instanceValue, "ID"));
+                    if (stringMatch((char *)ID, InstanceID)) {
+                        json_t *returnObject = json_copy(instanceValue);
+                        json_decref(state);
+                        return returnObject;
+                    }
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
+
+char *returnInstanceFromState(const char *InstanceID, char *key)
+{
+    json_t *state = openInstanceState();
+    if (!state) {
+        return NULL;
+    }
+    
+    if (state) {
+        size_t groupIndex;
+        json_t *group;
+        json_t *oneViewGroups = json_object_get(state, "OneViewGroups");
+        json_array_foreach(oneViewGroups, groupIndex, group) {
+            
+            json_t *instances = json_object_get(group, "Instances");
+            
+            /* No Instance to compare, so failure to match
+             */
+//            if (json_array_size(instances) == 0) {
+//                return NULL;
+//            }
+            
+            if (instances) {
+                size_t instanceIndex;
+                json_t *instanceValue;
+                
+                json_array_foreach(instances, instanceIndex, instanceValue) {
+                    const char *ID = json_string_value(json_object_get(instanceValue, "ID"));
+                    if (stringMatch((char *)ID, InstanceID)) {
+                        // found our instance
+                        const char *value = json_string_value(json_object_get(instanceValue, key));
+                        if (value) {
+                            // Key exists and has returned a value
+                            char *returnValue = strdup(value);
+                            json_decref(state);
+                            return returnValue;
+                        }
+                    }
                 }
             }
         }
     }
     // Not found in our state
-    json_decref(stateJSON);
+    json_decref(state);
     return NULL;
 }
 
-int compareInstanceValueToKey(char *key, const char *value)
+/* This will iterate through the state file and determine
+ * if the hardware URI is already applied to a server profile
+ * This is because the plugin moves faster than OneView does.
+ */
+
+int findUsedHWInState(const char *hardwareURI)
 {
-    json_t *stateJSON = openInstanceState();
-    json_t *instances = json_object_get(stateJSON, "Instances");
-    
-    /* No Instance to compare, so failure to match
-     */
-    
-    if (json_array_size(instances) == 0) {
+    json_t *state = openInstanceState();
+    if (!state) {
+        ovPrintError(getPluginTime(), "Can't read State Data\n");
         return EXIT_FAILURE;
     }
     
-    if (instances) {
-        size_t instanceIndex;
-        json_t *instanceValue;
-        
-        json_array_foreach(instances, instanceIndex, instanceValue) {
-            const char *currentValue = json_string_value(json_object_get(instanceValue, key));
-            if (currentValue) {
-                if (stringMatch((char *)currentValue, (char *)value)) {
-                    json_decref(stateJSON);
-                    return EXIT_SUCCESS;
+    if (state) {
+        size_t groupIndex;
+        json_t *group;
+        json_t *oneViewGroups = json_object_get(state, "OneViewGroups");
+        json_array_foreach(oneViewGroups, groupIndex, group) {
+            
+            json_t *instances = json_object_get(group, "Instances");
+            
+            /* No Instance to compare, so failure to match
+             */
+//            if (json_array_size(instances) == 0) {
+//                ovPrintInfo(getPluginTime(), "No instances or Hardware allocated\n");
+//                return EXIT_SUCCESS;
+//            }
+//            
+            if (instances) {
+                size_t instanceIndex;
+                json_t *instanceValue;
+                
+                json_array_foreach(instances, instanceIndex, instanceValue) {
+                    const char *ID = json_string_value(json_object_get(instanceValue, "ID"));
+                    json_t *tags = json_object_get(instanceValue, "Tags");
+                    const char *stateURI = json_string_value(json_object_get(tags, "hw_uri"));
+                    if (stringMatch(stateURI,hardwareURI)) {
+                        // Found the hardware URI applied to a server profile
+                        char ovOutput[1024];
+                        snprintf(ovOutput, 1024, "Hardware belongs to %s\n", ID);
+                        ovPrintDebug(getPluginTime(), ovOutput);
+                        json_decref(state);
+                        return EXIT_FAILURE;
+                    }
                 }
             }
         }
     }
-    json_decref(stateJSON);
-    return EXIT_FAILURE;
+    // Not found in our state
+    json_decref(state);
+    return EXIT_SUCCESS;
 }

@@ -97,12 +97,9 @@ char *findFreeHardware(oneviewSession *session, const char *hardwareTypeuri)
                     const char *hardwareuri = json_string_value(json_object_get(memberValue, "serverHardwareTypeUri"));
                     const char *uri = json_string_value(json_object_get(memberValue, "uri"));
                     if (stringMatch((char *)hardwareuri, (char *)hardwareTypeuri)) {
-                        // Check to see if the server appears in the state data (this is due to a delay in OneView reflecting the "Current" state)
-                        if (!compareInstanceValueToKey("LogicalID", uri))  {
-                            
-                            // WARNING: WILL NEED REMOVING
                         
-                        } else {
+                        // Check to see if the server appears in the state data (this is due to a delay in OneView reflecting the "Current" state)
+                        if (!findUsedHWInState(uri)) {
                             const char *assignedProfile = json_string_value(json_object_get(memberValue, "serverProfileUri"));
 
                             if (!assignedProfile) {
@@ -314,9 +311,6 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
                 
             }
             
-            //const char *serverLocation = json_string_value(json_object_get(properties, "ServerLocation"));
-            
-            
             /* This will take either the template name or an assigned server profile name, 
              and it will then append the unique ID to the end of the name to be used as a new profile name.
              e.g.   TEMPLATE-NAME={123425436547-1234325436547-1243253}
@@ -439,17 +433,21 @@ int freeInstance(instance *freeInstance)
  * the physical Infrastructure state.
  */
 
-int synchroniseStateWithPhysical()
+int synchroniseStateWithPhysical(json_t *params)
 {
     
     /* 
      Investigate Server Hardware -> State
      */
+    json_t *tags = json_object_get(params, "Tags");
+    const char *groupName = json_string_value(json_object_get(tags, "infrakit.group"));
 
-    if (loginFromState() == EXIT_SUCCESS) {
-        json_t *StateJSON = openInstanceState("");
-        json_t *previousInstances = json_object_get(StateJSON, "Instances");
-        json_t *previousNonFunctional = json_object_get(StateJSON, "NonFunctional");
+    if (loginFromState(groupName) == EXIT_SUCCESS) {
+        json_t *stateJSON = openInstanceState();
+        json_t *group = findGroup(stateJSON, groupName);
+
+        json_t *previousInstances = json_object_get(group, "Instances");
+        json_t *previousNonFunctional = json_object_get(group, "NonFunctional");
         
         json_t *currentInstances = json_array();
         json_t *currentNonFunctional = json_array();
@@ -513,13 +511,13 @@ int synchroniseStateWithPhysical()
         }
         
         // Two updated new arrays to replace inside our state
-        json_object_set(StateJSON, "Instances", currentInstances);
-        json_object_set(StateJSON, "NonFunctional", currentNonFunctional);
+        json_object_set(group, "Instances", currentInstances);
+        json_object_set(group, "NonFunctional", currentNonFunctional);
 
-        char *json_text = json_dumps(StateJSON, JSON_ENSURE_ASCII);
+        char *json_text = json_dumps(stateJSON, JSON_ENSURE_ASCII);
         saveInstanceState(json_text);
         free(json_text);
-        json_decref(StateJSON);
+        json_decref(stateJSON);
         return EXIT_SUCCESS;
     }
     return EXIT_FAILURE;
@@ -578,11 +576,14 @@ char *ovInfraKitInstanceProvision(json_t *params, long long id)
 
 char *ovInfraKitInstanceDescribe(json_t *params, long long id)
 {
-    if (synchroniseStateWithPhysical() == EXIT_FAILURE) {
-        ovPrintWarning(getPluginTime(), "Failed to synchronise state");
+    if (synchroniseStateWithPhysical(params) == EXIT_FAILURE) {
+        ovPrintWarning(getPluginTime(), "Failed to synchronise state\n");
     }
-    json_t *instanceState = openInstanceState("");
-    json_t *instanceArray = json_object_get(instanceState, "Instances");
+    json_t *tags = json_object_get(params, "Tags");
+    const char *groupName = json_string_value(json_object_get(tags, "infrakit.group"));
+    json_t *instanceState = openInstanceState();
+    json_t *group = findGroup(instanceState, groupName);
+    json_t *instanceArray = json_object_get(group, "Instances");
     char *DescriptionResponse = "{s:s,s:{s:[]},s:s?,s:I}";
     json_t *responseJSON = json_pack(DescriptionResponse,   "jsonrpc", "2.0",                   \
                                                             "result",                           \
@@ -607,13 +608,15 @@ char *ovInfraKitInstanceDestroy(json_t *params, long long id)
     
     const char *instanceID = json_string_value(json_object_get(params, "Instance"));
     
+    json_t *instance = returnObjectFromInstanceID(instanceID);
+    char *physicalID = returnInstanceFromState(instanceID, "LogicalID");
+    json_t *tags = json_object_get(instance, "Tags");
+    const char *groupName = json_string_value(json_object_get(tags, "infrakit.group"));
     
-    char *physicalID = returnValueFromInstanceKey(instanceID, "LogicalID");
-
-    if (loginFromState() == EXIT_SUCCESS) {
+    if (loginFromState(groupName) == EXIT_SUCCESS) {
         if (destroyServerProfile(physicalID) == EXIT_SUCCESS) {
             if (instanceID) {
-                InstanceRemoved = removeInstanceFromState(instanceID);
+                InstanceRemoved = removeInstanceFromState(instanceID, groupName);
             }
         } else {
             ovPrintError(getPluginTime(), "Failed to remove instance =>\n");

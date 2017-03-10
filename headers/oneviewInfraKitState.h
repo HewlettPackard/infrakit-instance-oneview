@@ -16,14 +16,23 @@
 
 #include "jansson.h"
 
+ /*State file funcitons
+  */
 json_t *openInstanceState();
 int saveInstanceState(char *jsonData);
-int appendInstanceToState(profile *foundServer, oneviewSession *session, json_t *paramsJSON);
-int compareInstanceValueToKey(char *key, const char *value);
-int removeInstanceFromState(const char *instanceID);
-int loginFromState();
-char *returnValueFromInstanceKey(const char *InstanceID, char *key);
 int setStatePath(char *path);
 char *getStatePath();
 char *getArgStatePath();
 int setArgStatePath(char *path);
+
+int loginFromState(const char *groupName);
+
+// Add remove from state
+int appendInstanceToState(profile *foundServer, oneviewSession *session, json_t *paramsJSON);
+int removeInstanceFromState(const char *instanceID, const char *groupName);
+
+// search state
+char *returnInstanceFromState(const char *InstanceID, char *key);
+json_t *returnObjectFromInstanceID(const char *InstanceID);
+json_t *findGroup(json_t *state, const char *groupName);
+int findUsedHWInState(const char *hardwareURI);

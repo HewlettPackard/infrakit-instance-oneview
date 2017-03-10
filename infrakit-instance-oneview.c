@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     char *statepath, *socketName;
     if (argc >= 2) {
         if (stringMatch("version", argv[1])) {
-            printf("\nHPE OneView Instance Plugin version 0.2.0\nContanct finneran@hpe.com\n\n");
+            printf("\nHPE OneView Instance Plugin version 0.3.0\nContact: finneran@hpe.com\n\n");
             return 0;
         }
     }

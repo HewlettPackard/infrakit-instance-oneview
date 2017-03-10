@@ -25,6 +25,7 @@
 #include <signal.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 /* Added in OS specific includes to allow compilation on Linux / OSX
  */
@@ -42,9 +43,20 @@
 char *argumentSocketPath;
 char *argumentLogLevel;
 
+/* These variables hold the defaults 
+ * or the user specified names of the 
+ * sockets and the state files
+ */
+
 char *socketName = NULL;
+char *stateName = NULL;
+
 char *socketDefault = "instance-oneview";
-char socketPath[PATH_MAX];
+char *stateDefault = "state-oneview.json";
+
+// These will be built up to the fullpaths are runtime
+char builtSocketPath[PATH_MAX];
+char builtStatePath[PATH_MAX];
 
 int setSocketName(char *name)
 {
@@ -54,7 +66,6 @@ int setSocketName(char *name)
     }
     return EXIT_FAILURE;
 }
-
 
 /* This callback function will take the request data from the HTTPD server
  * process it and build a response and reponse code, that the web
@@ -71,38 +82,15 @@ int handlePostData(httpRequest *request)
         const char *methodName = json_string_value(json_object_get(requestJSON, "method"));
         long long id = json_integer_value(json_object_get(requestJSON, "id"));
         json_t *params = json_object_get(requestJSON, "params");
-
-        /* Look through the parameters to determing the group ID, this is
-         * needed for multi-tenancy groups. The problem here is that the instance.destroy
-         * doesn't have a group tag
-         */
         
-        const char *groupName = json_string_value(json_object_get(json_object_get(params, "Tags"), "infrakit.group"));
-        if (!groupName) {
-            json_t *spec = json_object_get(params, "Spec");
-            groupName = json_string_value(json_object_get(json_object_get(spec, "Tags"), "infrakit.group"));
+        if (getConsoleOutputLevel() == LOGDEBUG) {
+            char *debugMessage = json_dumps(requestJSON, JSON_INDENT(3));
+            ovPrintDebug(getPluginTime(), "Incoming Request =>\n");
+            ovPrintDebug(getPluginTime(), debugMessage);
+            free(debugMessage);
         }
-
-        if (groupName) {
-            char statePath[PATH_MAX];
-            snprintf(statePath, PATH_MAX, "%s/.infrakit/state/%s.json", getenv("HOME"), groupName);
-            
-            if (!getArgStatePath()) {
-                setStatePath(statePath);
-            } else {
-                setStatePath(getArgStatePath());
-            }
-        } else {
-            ovPrintDebug(getPluginTime(), "No InfraKit Group discovered, this could be a delete function\n");
-        }
-
-        
-        const char *debugMessage = json_dumps(requestJSON, JSON_INDENT(3));
-        ovPrintDebug(getPluginTime(), "Incoming Request =>\n");
-        ovPrintDebug(getPluginTime(), debugMessage);
         
         if (stringMatch(methodName, "Instance.DescribeInstances")) {
-
             char *response = ovInfraKitInstanceDescribe(params, id);
             ovPrintDebug(getPluginTime(), "Outgoing Response =>\n");
             ovPrintDebug(getPluginTime(), response);
@@ -111,24 +99,21 @@ int handlePostData(httpRequest *request)
             return EXIT_SUCCESS;
         }
         if (stringMatch(methodName, "Handshake.Implements")) {
-            
             json_t *reponseJSON = json_pack("{s:s,s:{s:[{s:s,s:s}]},s:I}", "jsonrpc", "2.0", "result", "APIs", "Name", "Instance", "Version", "0.3.0", "id", id);
-            char *test = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
-            setHTTPResponse(test, 200);
+            char *response = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
+            setHTTPResponse(response, 200);
             json_decref(requestJSON);
             return EXIT_SUCCESS;
         }
         if (stringMatch(methodName, "Instance.Validate")) {
-            
             json_t *reponseJSON = json_pack("{s:{s:b},s:s?,s:I}", "result", "OK", JSON_TRUE, "error", NULL, "id", id);
-            char *test = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
-            setHTTPResponse(test, 200);
+            char *response = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
+            setHTTPResponse(response, 200);
             json_decref(requestJSON);
             return EXIT_SUCCESS;
         }
         
         if (stringMatch(methodName, "Instance.Provision")) {
-            
             json_t *spec = json_object_get(params, "Spec");
             char *response = ovInfraKitInstanceProvision(spec, id);
             ovPrintDebug(getPluginTime(), "Outgoing Response =>\n");
@@ -164,13 +149,10 @@ int handlePostData(httpRequest *request)
 }
 
 void handleInterrupt(int signal){
-    //printf("Caught signal %d\n",(int)s);
     char pluginOutput[1024];
-    sprintf(pluginOutput, "Exit Signal: %d, Removing Socket: %s\n", signal, socketPath);
+    sprintf(pluginOutput, "Exit Signal: %d, Removing Socket: %s\n", signal, builtSocketPath);
     ovPrintWarning(getPluginTime(), pluginOutput);
-    //ovPrintError(getPluginTime(), "InfraKit-instance-oneview is exciting, removing UNIX Socket =>\n");
-    //ovPrintError(getPluginTime(), socketPath);
-    unlink(socketPath);
+    unlink(builtSocketPath);
 }
 
 void setInterruptHandler()
@@ -198,47 +180,62 @@ int ovCreateInfraKitInstance()
      * the directory paths.
      */
     
-    sprintf(socketPath, "%s/", getenv("HOME"));
-    strcat(socketPath, ".infrakit/");
+    sprintf(builtSocketPath, "%s/", getenv("HOME"));
+    strcat(builtSocketPath, ".infrakit/");
     int response = 0;
-    response = mkdir(socketPath, 0755);
-    if (response == -1) {
-        ovPrintWarning(getPluginTime(), "Directory .InfraKit may already exist\n");
+    response = mkdir(builtSocketPath, 0755);
+    if ((response == -1) && errno != EEXIST ) {
+        ovPrintError(getPluginTime(), "Error creating ~/.InfraKit Plugin can not start\n");
+        return EXIT_FAILURE;
     }
     
-//    
-//    char *statePath = getStatePath();
-//    if (!statePath) {
-//        char buildStatePath[PATH_MAX];
-//        sprintf(buildStatePath, "%sstate/",socketPath);
-//        response = mkdir(buildStatePath, 0755);
-//        if (response == -1) {
-//            ovPrintWarning(getPluginTime(), "Directory .InfraKit/state/ may already exist");
-//        }
-//        strcat(buildStatePath, "oneview.json");
-//        statePath = buildStatePath;
+    
+    /* Look through the parameters to determing the group ID, this is
+     * needed for multi-tenancy groups. The problem here is that the instance.destroy
+     * doesn't have a group tag
+     */
+    
+//    const char *groupName = json_string_value(json_object_get(json_object_get(params, "Tags"), "infrakit.group"));
+//    if (!groupName) {
+//        json_t *spec = json_object_get(params, "Spec");
+//        groupName = json_string_value(json_object_get(json_object_get(spec, "Tags"), "infrakit.group"));
 //    }
+    
+
+    if (getArgStatePath()) {
+        setStatePath(getArgStatePath());
+    } else {
+        sprintf(builtStatePath, "%sstate/", builtSocketPath);
+        response = mkdir(builtStatePath, 0755);
+        if ((response == -1) && errno != EEXIST ) {
+            ovPrintError(getPluginTime(), "Error creating ~/.InfraKit/state Plugin can not start\n");
+            return EXIT_FAILURE;
+        }
+        strcat(builtStatePath, stateDefault);
+        setStatePath(builtStatePath);
+    }
 
     
-    strcat(socketPath, "plugins/");
-    response = mkdir(socketPath, 0755);
-    if (response == -1) {
-        ovPrintWarning(getPluginTime(), "Directory .InfraKit/plugins/ may already exist\n");
+    
+    strcat(builtSocketPath, "plugins/");
+    response = mkdir(builtSocketPath, 0755);
+    if ((response == -1) && errno != EEXIST ) {
+        ovPrintError(getPluginTime(), "Error creating ~/.InfraKit/plugins Plugin can not start\n");
+        return EXIT_FAILURE;
     }
     
     if (socketName) {
-        strcat(socketPath, socketName);
+        strcat(builtSocketPath, socketName);
     } else {
-        strcat(socketPath, socketDefault);
+        strcat(builtSocketPath, socketDefault);
     }
-    char ovOutput[1024];
-    sprintf(ovOutput, "Path for Unix Socket => %s\n", socketPath);
-//    ovPrintInfo(getPluginTime(), "Path for UNIX Socket =>");
-//    ovPrintInfo(getPluginTime(), socketPath);
-    ovPrintInfo(getPluginTime(), ovOutput);
+    setSocketPath(builtSocketPath);
 
-    
-    setSocketPath(socketPath);
+    char ovOutput[1024];
+    sprintf(ovOutput, "Path for Unix Socket => %s\n", builtSocketPath);
+    ovPrintInfo(getPluginTime(), ovOutput);
+    sprintf(ovOutput, "Path for State File => %s\n", builtStatePath);
+    ovPrintInfo(getPluginTime(), ovOutput);
 
     SetPostFunction(handlePostData);
 
