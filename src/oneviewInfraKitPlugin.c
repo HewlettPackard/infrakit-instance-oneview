@@ -105,6 +105,14 @@ int handlePostData(httpRequest *request)
             json_decref(requestJSON);
             return EXIT_SUCCESS;
         }
+        // Backwards compatability
+        if (stringMatch(methodName, "Plugin.Implements")) {
+            json_t *reponseJSON = json_pack("{s:s,s:{s:[{s:s,s:s}]},s:I}", "jsonrpc", "2.0", "result", "APIs", "Name", "Instance", "Version", "0.1.0", "id", id);
+            char *response = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
+            setHTTPResponse(response, 200);
+            json_decref(requestJSON);
+            return EXIT_SUCCESS;
+        }
         if (stringMatch(methodName, "Instance.Validate")) {
             json_t *reponseJSON = json_pack("{s:{s:b},s:s?,s:I}", "result", "OK", JSON_TRUE, "error", NULL, "id", id);
             char *response = json_dumps(reponseJSON, JSON_ENSURE_ASCII);

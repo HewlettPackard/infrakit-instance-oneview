@@ -36,3 +36,6 @@ char *returnInstanceFromState(const char *InstanceID, char *key);
 json_t *returnObjectFromInstanceID(const char *InstanceID);
 json_t *findGroup(json_t *state, const char *groupName);
 int findUsedHWInState(const char *hardwareURI);
+
+// return instances
+json_t *returnAllInstances(json_t *state);

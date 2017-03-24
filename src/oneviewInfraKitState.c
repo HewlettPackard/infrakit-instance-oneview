@@ -128,6 +128,11 @@ int saveInstanceState(char *jsonData)
     return EXIT_SUCCESS;
 }
 
+/* This function will take the state data, and then find a group
+ * within that data, if found it will return the JSON object attached
+ * to that group
+ */
+
 json_t *findGroup(json_t *state, const char *groupName)
 {
     if (state && groupName) {
@@ -389,4 +394,14 @@ int findUsedHWInState(const char *hardwareURI)
     // Not found in our state
     json_decref(state);
     return EXIT_SUCCESS;
+}
+
+ /*  In the event a describe is done directly to the plugin, then a group wont be specified
+  *  For this will take ALL instances from ALL groups and compile a full list of instances
+  *  that the plugin is managing.
+  */
+
+json_t *returnAllInstances(json_t *state)
+{
+    return NULL;
 }

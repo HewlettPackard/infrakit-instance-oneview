@@ -583,7 +583,12 @@ char *ovInfraKitInstanceDescribe(json_t *params, long long id)
     const char *groupName = json_string_value(json_object_get(tags, "infrakit.group"));
     json_t *instanceState = openInstanceState();
     json_t *group = findGroup(instanceState, groupName);
-    json_t *instanceArray = json_object_get(group, "Instances");
+    json_t *instanceArray;
+    if (!group) {
+        // If no group is specified then we will want to return all instances
+        //instanceArray
+    }
+    instanceArray = json_object_get(group, "Instances");
     char *DescriptionResponse = "{s:s,s:{s:[]},s:s?,s:I}";
     json_t *responseJSON = json_pack(DescriptionResponse,   "jsonrpc", "2.0",                   \
                                                             "result",                           \
