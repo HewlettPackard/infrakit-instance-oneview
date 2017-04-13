@@ -99,7 +99,7 @@ int handlePostData(httpRequest *request)
             return EXIT_SUCCESS;
         }
         if (stringMatch(methodName, "Handshake.Implements")) {
-            json_t *reponseJSON = json_pack("{s:s,s:{s:[{s:s,s:s}]},s:I}", "jsonrpc", "2.0", "result", "APIs", "Name", "Instance", "Version", "0.3.0", "id", id);
+            json_t *reponseJSON = json_pack("{s:s,s:{s:[{s:s,s:s}]},s:I}", "jsonrpc", "2.0", "result", "APIs", "Name", "Instance", "Version", "0.5.0", "id", id);
             char *response = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
             setHTTPResponse(response, 200);
             json_decref(requestJSON);

@@ -403,5 +403,6 @@ int findUsedHWInState(const char *hardwareURI)
 
 json_t *returnAllInstances(json_t *state)
 {
+    
     return NULL;
 }
