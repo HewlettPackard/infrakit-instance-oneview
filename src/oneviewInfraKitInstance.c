@@ -604,8 +604,8 @@ char *ovInfraKitInstanceDescribe(json_t *params, long long id)
 
 char *ovInfraKitInstanceDestroy(json_t *params, long long id)
 {
-    
-    int InstanceRemoved;
+    // Ensure that Instance Removed is initialised
+    int InstanceRemoved = EXIT_FAILURE;
 
     /* The InstanceID is the Hardware URI, which is the unique identifier for a
      * physical server inside of HPE OneView
@@ -628,7 +628,6 @@ char *ovInfraKitInstanceDestroy(json_t *params, long long id)
             if (instanceID){
                 ovPrintError(getPluginTime(), instanceID);
                 ovPrintError(getPluginTime(), "\n");
-
             }
         }
     } else {

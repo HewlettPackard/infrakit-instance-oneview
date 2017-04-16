@@ -105,7 +105,7 @@ int handlePostData(httpRequest *request)
             json_decref(requestJSON);
             return EXIT_SUCCESS;
         }
-        // Backwards compatability
+        // Backwards compatability (should be removed in the future)
         if (stringMatch(methodName, "Plugin.Implements")) {
             json_t *reponseJSON = json_pack("{s:s,s:{s:[{s:s,s:s}]},s:I}", "jsonrpc", "2.0", "result", "APIs", "Name", "Instance", "Version", "0.1.0", "id", id);
             char *response = json_dumps(reponseJSON, JSON_ENSURE_ASCII);
