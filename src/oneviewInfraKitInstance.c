@@ -22,11 +22,11 @@
 /* jsonrpc error return codes
  */
 
-json_int_t parse_error = -32700;
-json_int_t invald_request = -32600;
-json_int_t method_not_found = -32601;
-json_int_t invalid_params = -32602;
-json_int_t internal_error = -32603;
+json_int_t parse_error =        -32700;
+json_int_t invald_request =     -32600;
+json_int_t method_not_found =   -32601;
+json_int_t invalid_params =     -32602;
+json_int_t internal_error =     -32603;
 
 /* global variable used by functions to identify if they should modify the power
  * state when attempting to apply a profile.
@@ -54,7 +54,6 @@ int instanceLogin(const char *address, const char *username, const char *passwor
     infrakitSession->username = strdup(username);
     infrakitSession->password = strdup(password);
     infrakitSession->version = identifyOneview(infrakitSession);
-    
     return ovLogin(infrakitSession);
 }
 
@@ -248,7 +247,6 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
               Work through the server profile creation
              *************/
             
-            
             // Name of the HPE OneView Profile to be used
             const char *templateName = json_string_value(json_object_get(properties, "TemplateName"));
             // Name to use when creating the server profile
@@ -291,7 +289,6 @@ instance *processInstanceJSON(json_t *paramsJSON, long long id)
                         json_object_set(newProfileJSON, "serverHardwareUri", json_string(foundServer->availableHardwareURI));
                         json_object_set(newProfileJSON, "description", json_string(getStatePath()));
                         char *rawProfileJSON = json_dumps(newProfileJSON, JSON_ENSURE_ASCII);
-                        
                         
                         if (rawProfileJSON) {
                             ovPostProfile(infrakitSession, rawProfileJSON);
@@ -586,9 +583,10 @@ char *ovInfraKitInstanceDescribe(json_t *params, long long id)
     json_t *instanceArray;
     if (!group) {
         // If no group is specified then we will want to return all instances
-        //instanceArray
+        instanceArray = returnAllInstances(instanceState);
+    } else {
+        instanceArray = json_object_get(group, "Instances");
     }
-    instanceArray = json_object_get(group, "Instances");
     char *DescriptionResponse = "{s:s,s:{s:[]},s:s?,s:I}";
     json_t *responseJSON = json_pack(DescriptionResponse,   "jsonrpc", "2.0",                   \
                                                             "result",                           \

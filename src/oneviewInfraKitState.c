@@ -71,7 +71,7 @@ int setArgStatePath(char *path)
 int loginFromState(const char *groupName)
 {
     if (!groupName) {
-        ovPrintError(getPluginTime(), "No Group could be found for state data\n");
+        ovPrintNotice(getPluginTime(), "No Group could be found for state data\n");
         return EXIT_FAILURE;
     }
     json_t *stateJSON = openInstanceState();
@@ -403,6 +403,18 @@ int findUsedHWInState(const char *hardwareURI)
 
 json_t *returnAllInstances(json_t *state)
 {
-    
-    return NULL;
+    if (!state) {
+        return NULL;
+    }
+    json_t *allInstances = json_array();
+    if (state) {
+        size_t groupIndex;
+        json_t *group;
+        json_t *oneViewGroups = json_object_get(state, "OneViewGroups");
+        json_array_foreach(oneViewGroups, groupIndex, group) {
+            json_t *instances = json_object_get(group, "Instances");
+            json_array_extend(allInstances, instances);
+        }
+    }
+    return allInstances;
 }
